@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh_cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>已上传统计</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.2/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div id="message-container" class="fixed-top m-3"
+     style="left: auto; right: 0;top: 0; width: 300px; z-index: 9999;"></div>
+<div class="container mt-5">
+    <!-- 文件信息卡片 -->
+    <div class="card mb-3">
+        <div class="card-header">
+            文件信息
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">文件名: <span id="fileName"></span></li>
+            <li class="list-group-item">文件大小: <span id="fileSize"></span></li>
+            <li class="list-group-item">文件更新时间: <span id="fileUpdateTime"></span></li>
+        </ul>
+    </div>
+    <!-- 内容项数卡片 -->
+    <div class="card">
+        <div class="card-header">
+            内容信息
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">上传地图数目: <span id="itemCount"></span></li>
+            <li class="list-group-item">单人地图数目: <span id="singleMapCount"></span></li>
+            <li class="list-group-item">多人地图数目: <span id="multiMapCount"></span></li>
+            <li class="list-group-item">单/多人地图数目: <span id="singleandmultiMapCount"></span></li>
+            <li class="list-group-item">最新上传地图: <span id="latestMap"></span></li>
+        </ul>
+    </div>
+</div>
+<div class="d-flex justify-content-center mb-5 mt-3">
+    <button id="refreshButton" class="btn btn-primary">刷新数据</button>
+</div>
+<script>
+    $('#refreshButton').click(function () {
+        updateData();
+    });
+
+    function updateData() {
+        $.get('main.php', function (data) {
+            // 文件信息
+            $('#fileName').text(data.file_name);
+            $('#fileSize').text(data.file_size);
+            $('#fileUpdateTime').text(data.file_update_time);
+            // 内容信息
+            $('#itemCount').text(data.item_count);
+            $('#singleMapCount').text(data.single_map_count);
+            $('#multiMapCount').text(data.multi_map_count);
+            $('#singleandmultiMapCount').text(data.single_multi_map_count);
+
+            // 最新上传地图
+            let latestMapHtml = '<ul>';
+            for (let mapName in data.latest_map) {
+                latestMapHtml += '<li><strong>地图名: ' + mapName + '</strong></li>';
+                let mapDetails = data.latest_map[mapName];
+                for (let key in mapDetails) {
+                    let translatedKey;
+                    switch (key) {
+                        case 'url':
+                            translatedKey = '链接';
+                            break;
+                        case 'version':
+                            translatedKey = '版本';
+                            break;
+                        case 'code':
+                            translatedKey = '提取码';
+                            break;
+                        case 'category':
+                            translatedKey = '类别';
+                            break;
+                        case 'type':
+                            translatedKey = '类型[单(1)/双人(2)/单双人(3)]';
+                            break;
+                        default:
+                            translatedKey = key;
+                    }
+                    latestMapHtml += '<li style="margin-left: 20px;">' + translatedKey + ': ' + mapDetails[key] + '</li>';
+                }
+            }
+            latestMapHtml += '</ul>';
+            $('#latestMap').html(latestMapHtml);
+
+            showMessage('刷新成功', 'success');
+        }, 'json');
+    }
+
+    function showMessage(message, type) {
+        const messageContainer = document.getElementById('message-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade`;
+        alert.textContent = message;
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'close';
+        closeButton.dataset.dismiss = 'alert';
+        closeButton.innerHTML = '&times;';
+
+        alert.appendChild(closeButton);
+        messageContainer.appendChild(alert);
+
+        setTimeout(() => {
+            alert.classList.add('show');
+        }, 20);
+
+        setTimeout(() => {
+            $(alert).alert('close');
+            alert.style.transition = "all 0.5s";
+            alert.style.transform = "translateY(-50px)";
+            setTimeout(() => {
+                alert.remove();
+            }, 500);
+        }, 3000);
+    }
+
+    $(document).ready(updateData);
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+	<meta charset="UTF-8">
+	<title>🐻 北极熊 🧊</title>
+	<style>
+		body {
+			margin: 0;
+			height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background-color: beige;
+		}
+
+		footer {
+		  position: absolute;
+		  bottom: 0;
+		  width: 100%;
+		  text-align: center;
+		  padding: 10px 0; /* 页脚内边距，可以根据需要调整 */
+		}
+
+		h1 {
+		  position: absolute;
+		  top: 5%;
+		  left: 50%;
+		  transform: translateX(-50%);
+		  font-size: 2em;
+		  text-align: center;
+		  color: #333;
+		  width: 100%;
+		  margin: 0;
+		}
+
+		p {
+		  position: absolute;
+		  top: 15%;
+		  left: 50%;
+		  transform: translateX(-50%);
+		  font-size: 1em;
+		  text-align: center;
+		  color: #333;
+		  width: 100%;
+		  margin: 0;
+		}
+
+		.loader {
+			font-size: 10px;
+			width: 12em;
+			padding: 0 4em 2em 4em;
+			color: black;
+			border-style: solid;
+			border-width: 0.4em 0.1em 4em 0.1em;
+			display: flex;
+			justify-content: space-between;
+		}
+
+		.loader span {
+			width: 0.2em;
+			height: 10em;
+			background-color: currentColor;
+			position: relative;
+			transform-origin: top;
+			animation: moving-up 0.75s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+		}
+
+		@keyframes moving-up {
+			0%, 50% {transform: rotate(0deg);}
+			100% {transform: rotate(calc(45deg * var(--direction)));}
+		}
+
+		.loader span::before {
+			content: '';
+			position: absolute;
+			width: 3em;
+			height: 3em;
+			background-color: inherit;
+			border-radius: 50%;
+			bottom: 0;
+			left: -1.5em;
+		}
+
+		.loader span:first-child {--direction: 1; animation-direction: alternate;}
+		.loader span:last-child {--direction: -1; animation-direction: alternate-reverse;}
+	</style>
+</head>
+<body>
+	<h1>北极熊地图相关网站</h1>
+	<p>由 HeimNad 完成网页, IceBear 提供地图数据</p>
+	<div class="loader">
+		<span></span>
+		<span></span>
+		<span></span>
+		<span></span>
+		<span></span>
+	</div>
+	<footer>
+	<div>
+		<span>版权所有 &copy; HeimNad</span>
+	</div>
+</footer>
+</body>
+</html>
