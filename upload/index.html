@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh_cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>熊熊地图补全计划</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.2/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.min.js"></script>
+</head>
+<style>
+    .break-all {
+        white-space: nowrap;
+        overflow: auto;
+        max-width: 300px;
+    }
+
+    .form-control {
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+        color: #333;
+    }
+
+    ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+        color: #d3d3d3;
+        opacity: 1; /* Firefox */
+        font-size: 14px;
+        font-style: italic;
+    }
+
+    :-ms-input-placeholder { /* Internet Explorer 10-11 */
+        color: #d3d3d3;
+        font-size: 14px;
+        font-style: italic;
+    }
+
+    ::-ms-input-placeholder { /* Microsoft Edge */
+        color: #d3d3d3;
+        font-size: 14px;
+        font-style: italic;
+    }
+</style>
+<body>
+<!-- 消息提示框 -->
+<div id="message-container" class="fixed-top m-3"
+style="left: auto; right: 0;top: 0; width: 300px; z-index: 9999;"></div>
+<div class="container">
+    <h1 class="text-center my-4">地图信息补全</h1>
+    <div class="form-group mb-3">
+        <label for="map_name">地图名称</label>
+        <input class="form-control mb-1" placeholder="e.g. 北极熊" id="map_name"/>
+        <label for="map_version">地图版本</label>
+        <input class="form-control mb-1" placeholder="e.g. 1.16.5" id="map_version"/>
+        <label for="map_url">地图链接</label>
+        <input class="form-control mb-1" placeholder="e.g. https://example.com" id="map_url"/>
+        <label for="url_code">提取码</label>
+        <input class="form-control mb-1" placeholder="e.g. ZICB" id="url_code"/>
+        <label for="map_category">分类</label>
+        <input class="form-control mb-1" placeholder="e.g. 冒险" id="map_category">
+        <label for="map_type">地图类型</label>
+        <select class="form-control mb-1" id="map_type">
+            <option value="1">单人</option>
+            <option value="2">多人</option>
+            <option value="3">单/多人</option>
+        </select>
+    </div>
+    <div class="d-flex justify-content-center mb-5">
+        <button class="btn btn-danger mx-3" onclick="clearInputs()">清空输入框</button>
+        <button class="btn btn-primary mx-3" onclick="add()">插入</button>
+    </div>
+    <!-- 表格 -->
+    <div class="" id="table_div"></div>
+    <!-- 表格相关按钮 -->
+    <div class="d-flex justify-content-center mb-3">
+        <button class="btn btn-danger mx-3" onclick="clearTable()">清空表格</button>
+        <a href="./statistic" target="_blank" class="btn btn-info mx-3">查看统计</a>
+        <button class="btn btn-success mx-3" onclick="submit()">提交</button>
+    </div>
+    <!-- 确认清空对话框 -->
+    <div class="modal fade" id="confirmDialog" tabindex="-1" role="dialog" aria-labelledby="confirmDialogLabel"
+         aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDialogLabel">确认</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    确定要清空表格吗？
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmBtn">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 提交信息对话框 -->
+    <div class="modal fade" id="messageModal" tabindex="-1" role="dialog" aria-labelledby="messageModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalLabel">消息</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="messageModalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    window.onload = function () {
+        updateTable();
+    }
+    window.onbeforeunload = function() {
+        if (map_info.length > 0) {
+            return "你的数据还没有提交，确定要离开吗？";
+        }
+    };
+
+    const map_name = document.getElementById('map_name');
+    const map_type = document.getElementById('map_type');
+    const map_version = document.getElementById('map_version');
+    const map_url = document.getElementById('map_url');
+    const url_code = document.getElementById('url_code');
+    const map_category = document.getElementById('map_category');
+
+    const confirmDialog = document.getElementById("confirmDialog");
+
+    let map_info = [];
+
+    function showMessage(message, type) {
+        const messageContainer = document.getElementById('message-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.textContent = message;
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'close';
+        closeButton.dataset.dismiss = 'alert';
+        closeButton.innerHTML = '&times;';
+
+        alert.appendChild(closeButton);
+        messageContainer.appendChild(alert);
+
+        setTimeout(() => {
+            alert.classList.add('show');
+        }, 20);
+
+        setTimeout(() => {
+            $(alert).alert('close');
+            // 添加过渡效果
+            alert.style.transition = "all 0.5s";
+            alert.style.transform = "translateY(-50px)";
+            setTimeout(() => {
+                alert.remove();
+            }, 500);
+        }, 3000);
+    }
+
+    function clearInputs() {
+        map_name.value = '';
+        map_version.value = '';
+        map_url.value = '';
+        url_code.value = '';
+        map_category.value = '';
+        showMessage('输入框已清空', 'info');
+    }
+
+    function add() {
+        if (map_name.value === '' || map_version.value === '' || map_url.value === '' || url_code.value === '' || map_category.value === '' || map_type.value === '') {
+            showMessage('输入框不能为空', 'warning');
+            return;
+        }
+
+        for (let i = 0; i < map_info.length; i++) {
+            if (map_info[i].map_name === map_name.value) {
+                showMessage('地图名称重复', 'warning');
+                return;
+            }
+        }
+
+        map_info.push({
+            map_name: map_name.value,
+            map_type: map_type.value,
+            map_version: map_version.value,
+            map_url: map_url.value,
+            url_code: url_code.value,
+            map_category: map_category.value,
+        });
+
+        updateTable();
+
+        showMessage('添加成功', 'success');
+    }
+
+    function updateTable() {
+        const table_div = document.getElementById('table_div');
+        const table = document.createElement('table');
+        table.className = 'table table-striped table-bordered table-hover table-responsive-md';
+
+        const thead = document.createElement('thead');
+        const headers = ['序号', '地图名称', '单双人', '地图版本', '地图链接', '提取码', '类型', '操作'];
+        const headerRow = document.createElement('tr');
+        headers.forEach(header => {
+            const th = document.createElement('th');
+            th.textContent = header;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        map_info.forEach((info, index) => {
+            const row = createRow(info, index);
+            table.appendChild(row);
+        });
+
+        table_div.innerHTML = '';
+        table_div.appendChild(table);
+    }
+
+    function createRow(info, index) {
+        const row = document.createElement('tr');
+
+        const indexCell = document.createElement('td');
+        indexCell.textContent = index + 1;
+        row.appendChild(indexCell);
+
+        for (let key in info) {
+            const cell = document.createElement('td');
+            cell.textContent = info[key];
+            cell.className = 'break-all';
+            cell.contentEditable = 'true';
+            cell.addEventListener('blur', function () {
+                map_info[index][key] = cell.textContent;
+            });
+            row.appendChild(cell);
+        }
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '删除';
+        deleteButton.className = 'btn btn-danger';
+        deleteButton.addEventListener('click', function () {
+            map_info.splice(index, 1);
+            updateTable();
+        });
+
+        const cell = document.createElement('td');
+        cell.appendChild(deleteButton);
+        row.appendChild(cell);
+
+        return row;
+    }
+
+    function clearTable() {
+        $('#confirmDialog').modal('show');
+    }
+
+    $('#confirmBtn').click(function () {
+        map_info = [];
+        updateTable();
+        $('#confirmDialog').modal('hide');
+    });
+
+    $('button[data-dismiss="modal"]').click(function () {
+        $('#confirmDialog').modal('hide');
+    });
+
+    function submit() {
+        if (map_info.length === 0) {
+            showMessage('表格为空，无法提交', 'warning');
+            return;
+        }
+
+        const map_info_arr = map_info.map(info => {
+            let obj = {};
+            obj[info.map_name] = {
+                url: info.map_url,
+                version: info.map_version,
+                code: info.url_code,
+                category: info.map_category,
+                type: info.map_type
+            };
+            return obj;
+        });
+
+        fetch('main.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(map_info_arr)
+        }).then(response => {
+            if (!response.ok) {
+                return response.json().then(error => {
+                    throw new Error(error.message);
+                });
+            }
+            return response.json();
+        }).then(data => {
+            console.log('Success:', data);
+            document.getElementById('messageModalLabel').textContent = '成功';
+            document.getElementById('messageModalBody').textContent = '提交成功';
+            $('#messageModal').modal('show');
+        }).catch((error) => {
+            console.error('Error:', error);
+            document.getElementById('messageModalLabel').textContent = '错误';
+            document.getElementById('messageModalBody').textContent = '提交失败: ' + error.message;
+            $('#messageModal').modal('show');
+        });
+    }
+</script>
+</body>
+</html>
